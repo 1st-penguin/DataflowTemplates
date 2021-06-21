@@ -183,6 +183,12 @@ public class PubSubCdcToBigQuery {
 
     void setOutputTableSpec(String value);
 
+    @Description("This determines if failed records inserts to dead-letter table or GCS")
+    @Default.Boolean(true)
+    Boolean getUseDeadLetterTable();
+
+    void setUseDeadLetterTable(Boolean value);
+
     @Description(
         "The dead-letter table to output to within BigQuery in <project-id>:<dataset>.<table> "
             + "format. If it doesn't exist, it will be created during pipeline execution.")
@@ -241,7 +247,7 @@ public class PubSubCdcToBigQuery {
     DeadLetterQueueManager dlqManager = buildDlqManager(options);
     String gcsOutputDateTimeDirectory = null;
 
-    if (options.getDeadLetterQueueDirectory() != null) {
+    if (!options.getUseDeadLetterTable()) {
       gcsOutputDateTimeDirectory = dlqManager.getRetryDlqDirectory() + "YYYY/MM/DD/HH/mm/";
     }
 
@@ -289,7 +295,7 @@ public class PubSubCdcToBigQuery {
 
     PCollection<FailsafeElement<String, String>> jsonRecords;
 
-    if (options.getDeadLetterQueueDirectory() != null) {
+    if (!options.getUseDeadLetterTable()) {
 
       PCollection<FailsafeElement<String, String>> failsafeMessages =
           messages.apply("ConvertPubSubToFailsafe", ParDo.of(new PubSubToFailSafeElement()));
@@ -381,7 +387,7 @@ public class PubSubCdcToBigQuery {
      * Stage 4: Write Failures to GCS Dead Letter Queue
      */
     // TODO: Cover tableRowRecords.get(TRANSFORM_DEADLETTER_OUT) error values
-    if (options.getDeadLetterQueueDirectory() != null) {
+    if (!options.getUseDeadLetterTable()) {
 
       writeResult
           .getFailedInsertsWithErr()
