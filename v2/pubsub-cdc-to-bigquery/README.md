@@ -73,6 +73,13 @@ echo '{
             "isOptional":true
         },
         {
+            "name":"useDeadLetterTable",
+            "label":"This determines if failed records inserts to dead-letter table or GCS",
+            "helpText":"This determines if failed records inserts to dead-letter table or GCS",
+            "paramType":"TEXT",
+            "isOptional":true
+        },
+        {
             "name":"outputDatasetTemplate",
             "label":"The BigQuery Dataset Name or column template",
             "helpText":"The BigQuery Dataset Name or column template",
