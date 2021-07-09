@@ -377,7 +377,7 @@ public class PubSubCdcToBigQuery {
                 .withWriteDisposition(WriteDisposition.WRITE_APPEND)
                 .withExtendedErrorInfo()
                 .withMethod(BigQueryIO.Write.Method.STREAMING_INSERTS)
-                .withFailedInsertRetryPolicy(InsertRetryPolicy.alwaysRetry()));
+                .withFailedInsertRetryPolicy(InsertRetryPolicy.retryTransientErrors()));
 
     /*
      * Step 3 Contd.
