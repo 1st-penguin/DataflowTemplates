@@ -133,7 +133,7 @@ public class BigQueryDynamicConverters {
     @Override
     public TableDestination getTable(KV<TableId, TableRow> destination) {
       TableId tableId = destination.getKey();
-      String tableName = String.format("%s.%s", tableId.getDataset(), tableId.getTable());
+      String tableName = String.format("%s:%s.%s", tableId.getProject(), tableId.getDataset(), tableId.getTable());
       TableDestination dest =
           new TableDestination(tableName, "Name of table pulled from datafields");
 
