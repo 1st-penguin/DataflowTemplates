@@ -80,6 +80,13 @@ echo '{
             "isOptional":true
         },
         {
+            "name":"outputProject",
+            "label":"The GCP project id for BigQuery Dataset",
+            "helpText":"The GCP project id for BigQuery Dataset",
+            "paramType":"TEXT",
+            "isOptional":true
+        },
+        {
             "name":"outputDatasetTemplate",
             "label":"The BigQuery Dataset Name or column template",
             "helpText":"The BigQuery Dataset Name or column template",
