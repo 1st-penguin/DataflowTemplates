@@ -166,6 +166,12 @@ public class PubSubCdcToBigQuery {
 
     void setSchemaFilePath(String value);
 
+    @Description("The GCP project id for BigQuery Dataset")
+    @Default.String("")
+    String getOutputProject();
+
+    void setOutputProject(String value);
+
     @Description("The BigQuery Dataset Template")
     @Default.String("{_metadata_dataset}")
     String getOutputDatasetTemplate();
@@ -267,7 +273,7 @@ public class PubSubCdcToBigQuery {
 
     BigQueryTableConfigManager bqConfigManager =
         new BigQueryTableConfigManager(
-            (String) options.as(GcpOptions.class).getProject(),
+            (String) (options.getOutputProject().isEmpty() ? options.as(GcpOptions.class).getProject() : options.getOutputProject()),
             (String) options.getOutputDatasetTemplate(),
             (String) options.getOutputTableNameTemplate(),
             (String) options.getOutputTableSpec());
