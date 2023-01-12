@@ -7,7 +7,7 @@ and writes the data to BigQuery.
 ## Getting Started
 
 ### Requirements
-* Java 8
+* Java 11
 * Maven
 * PubSub Subscription exists
 
@@ -24,7 +24,7 @@ export IMAGE_NAME=pubsub-cdc-to-bigquery
 export BUCKET_NAME=gs://<bucket-name>
 export DATASET_TEMPLATE=<dataset-name>
 export TARGET_GCR_IMAGE=gcr.io/${PROJECT}/${IMAGE_NAME}
-export BASE_CONTAINER_IMAGE=gcr.io/dataflow-templates-base/java8-template-launcher-base
+export BASE_CONTAINER_IMAGE=gcr.io/dataflow-templates-base/java11-template-launcher-base
 export BASE_CONTAINER_IMAGE_VERSION=latest
 export APP_ROOT=/template/pubsub-cdc-to-bigquery
 export DATAFLOW_JAVA_COMMAND_SPEC=${APP_ROOT}/resources/pubsub-cdc-to-bigquery-command-spec.json
@@ -69,6 +69,20 @@ echo '{
             "name":"autoMapTables",
             "label":"Automatically add new BigQuery tables and columns as they appear",
             "helpText":"Automatically add new BigQuery tables and columns as they appear",
+            "paramType":"TEXT",
+            "isOptional":true
+        },
+        {
+            "name":"useDeadLetterTable",
+            "label":"This determines if failed records inserts to dead-letter table or GCS",
+            "helpText":"This determines if failed records inserts to dead-letter table or GCS",
+            "paramType":"TEXT",
+            "isOptional":true
+        },
+        {
+            "name":"outputProject",
+            "label":"The GCP project id for BigQuery Dataset",
+            "helpText":"The GCP project id for BigQuery Dataset",
             "paramType":"TEXT",
             "isOptional":true
         },

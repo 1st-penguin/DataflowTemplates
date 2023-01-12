@@ -99,7 +99,7 @@ import org.slf4j.LoggerFactory;
  * # Set containerization vars
  * IMAGE_NAME=pubsub-cdc-to-bigquery
  * TARGET_GCR_IMAGE=gcr.io/${PROJECT}/${IMAGE_NAME}
- * BASE_CONTAINER_IMAGE=gcr.io/dataflow-templates-base/java8-template-launcher-base
+ * BASE_CONTAINER_IMAGE=gcr.io/dataflow-templates-base/java11-template-launcher-base
  * BASE_CONTAINER_IMAGE_VERSION=latest
  * APP_ROOT=/template/pubsub-cdc-to-bigquery
  * DATAFLOW_JAVA_COMMAND_SPEC=${APP_ROOT}/resources/pubsub-cdc-to-bigquery-command-spec.json
@@ -166,6 +166,12 @@ public class PubSubCdcToBigQuery {
 
     void setSchemaFilePath(String value);
 
+    @Description("The GCP project id for BigQuery Dataset")
+    @Default.String("")
+    String getOutputProject();
+
+    void setOutputProject(String value);
+
     @Description("The BigQuery Dataset Template")
     @Default.String("{_metadata_dataset}")
     String getOutputDatasetTemplate();
@@ -182,6 +188,12 @@ public class PubSubCdcToBigQuery {
     String getOutputTableSpec();
 
     void setOutputTableSpec(String value);
+
+    @Description("This determines if failed records inserts to dead-letter table or GCS")
+    @Default.Boolean(true)
+    Boolean getUseDeadLetterTable();
+
+    void setUseDeadLetterTable(Boolean value);
 
     @Description(
         "The dead-letter table to output to within BigQuery in <project-id>:<dataset>.<table> "
@@ -241,7 +253,7 @@ public class PubSubCdcToBigQuery {
     DeadLetterQueueManager dlqManager = buildDlqManager(options);
     String gcsOutputDateTimeDirectory = null;
 
-    if (options.getDeadLetterQueueDirectory() != null) {
+    if (!options.getUseDeadLetterTable()) {
       gcsOutputDateTimeDirectory = dlqManager.getRetryDlqDirectory() + "YYYY/MM/DD/HH/mm/";
     }
 
@@ -261,7 +273,7 @@ public class PubSubCdcToBigQuery {
 
     BigQueryTableConfigManager bqConfigManager =
         new BigQueryTableConfigManager(
-            (String) options.as(GcpOptions.class).getProject(),
+            (String) (options.getOutputProject().isEmpty() ? options.as(GcpOptions.class).getProject() : options.getOutputProject()),
             (String) options.getOutputDatasetTemplate(),
             (String) options.getOutputTableNameTemplate(),
             (String) options.getOutputTableSpec());
@@ -289,7 +301,7 @@ public class PubSubCdcToBigQuery {
 
     PCollection<FailsafeElement<String, String>> jsonRecords;
 
-    if (options.getDeadLetterQueueDirectory() != null) {
+    if (!options.getUseDeadLetterTable()) {
 
       PCollection<FailsafeElement<String, String>> failsafeMessages =
           messages.apply("ConvertPubSubToFailsafe", ParDo.of(new PubSubToFailSafeElement()));
@@ -371,7 +383,7 @@ public class PubSubCdcToBigQuery {
                 .withWriteDisposition(WriteDisposition.WRITE_APPEND)
                 .withExtendedErrorInfo()
                 .withMethod(BigQueryIO.Write.Method.STREAMING_INSERTS)
-                .withFailedInsertRetryPolicy(InsertRetryPolicy.alwaysRetry()));
+                .withFailedInsertRetryPolicy(InsertRetryPolicy.retryTransientErrors()));
 
     /*
      * Step 3 Contd.
@@ -381,7 +393,7 @@ public class PubSubCdcToBigQuery {
      * Stage 4: Write Failures to GCS Dead Letter Queue
      */
     // TODO: Cover tableRowRecords.get(TRANSFORM_DEADLETTER_OUT) error values
-    if (options.getDeadLetterQueueDirectory() != null) {
+    if (!options.getUseDeadLetterTable()) {
 
       writeResult
           .getFailedInsertsWithErr()
@@ -398,8 +410,11 @@ public class PubSubCdcToBigQuery {
                   .withWindowedWrites()
                   .withNumShards(20)
                   .to(
-                      new WindowedFilenamePolicy(
-                          gcsOutputDateTimeDirectory, "error", "-SSSSS-of-NNNNN", ".json"))
+                      WindowedFilenamePolicy.writeWindowedFiles()
+                          .withOutputDirectory(gcsOutputDateTimeDirectory)
+                          .withOutputFilenamePrefix("error")
+                          .withShardTemplate("-SSSSS-of-NNNNN")
+                          .withSuffix(".json"))
                   .withTempDirectory(
                       FileBasedSink.convertToFileResourceIfPossible(
                           options.getDeadLetterQueueDirectory())));
@@ -426,8 +441,11 @@ public class PubSubCdcToBigQuery {
               .withWindowedWrites()
               .withNumShards(20)
               .to(
-                  new WindowedFilenamePolicy(
-                      gcsOutputDateTimeDirectory, "error", "-SSSSS-of-NNNNN", ".json"))
+                  WindowedFilenamePolicy.writeWindowedFiles()
+                      .withOutputDirectory(gcsOutputDateTimeDirectory)
+                      .withOutputFilenamePrefix("error")
+                      .withShardTemplate("-SSSSS-of-NNNNN")
+                      .withSuffix(".json"))
               .withTempDirectory(
                   FileBasedSink.convertToFileResourceIfPossible(
                       gcsOutputDateTimeDirectory + "tmp/")));

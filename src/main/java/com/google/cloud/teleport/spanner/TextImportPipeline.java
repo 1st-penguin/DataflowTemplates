@@ -177,6 +177,14 @@ public class TextImportPipeline {
     ValueProvider<RpcPriority> getSpannerPriority();
 
     void setSpannerPriority(ValueProvider<RpcPriority> value);
+
+    @Description(
+        "If true, run the template in handleNewLine mode, which is slower but handles newline"
+            + " characters inside data.")
+    @Default.Boolean(false)
+    ValueProvider<Boolean> getHandleNewLine();
+
+    void setHandleNewLine(ValueProvider<Boolean> value);
   }
 
   public static void main(String[] args) {
@@ -193,9 +201,11 @@ public class TextImportPipeline {
             // a bug resulting in the label value being set to the original parameter value,
             // with no fallback to the default project.
             // TODO: remove NestedValueProvider when this is fixed in Beam.
-            .withProjectId(NestedValueProvider.of(options.getSpannerProjectId(),
-                (SerializableFunction<String, String>) input ->
-                    input != null ? input : SpannerOptions.getDefaultProjectId()))
+            .withProjectId(
+                NestedValueProvider.of(
+                    options.getSpannerProjectId(),
+                    (SerializableFunction<String, String>)
+                        input -> input != null ? input : SpannerOptions.getDefaultProjectId()))
             .withHost(options.getSpannerHost())
             .withInstanceId(options.getInstanceId())
             .withDatabaseId(options.getDatabaseId())
